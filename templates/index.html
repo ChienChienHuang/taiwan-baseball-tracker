@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026台灣旅外棒球員近況追蹤系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .player-card-btn { transition: all 0.2s; min-width: 95px; }
+        .player-card-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
+        .nav-tabs .nav-link.active { font-weight: bold; border-bottom: 3px solid #0d6efd !important; }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-4">
+        <div class="text-center mb-4">
+            <h1 class="fw-bold text-primary">⚾台灣旅外球員近況追蹤系統</h1>
+            <p class="text-muted">追蹤美、日、韓三大職棒體系全體台灣好手陣容</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="card shadow-sm border-0 p-3 sticky-top" style="top: 20px;">
+                    <h5 class="fw-bold mb-3 text-secondary">🔍 篩選與搜尋面板</h5>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted">名字搜尋</label>
+                        <input type="text" id="searchName" class="form-control" placeholder="請輸入姓名..." oninput="filterPlayers()">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted">守備位置</label>
+                        <select id="filterPosition" class="form-select" onchange="filterPlayers()">
+                            <option value="all">全部位置</option>
+                            <option value="pitcher">投手 (Pitcher)</option>
+                            <option value="fielder">野手 (Fielder)</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-outline-secondary btn-sm w-100 mt-2" onclick="resetFilters()">重設篩選</button>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0 p-3 mb-3">
+                    <ul class="nav nav-tabs mb-3" id="leagueTabs" role="tablist">
+                        <li class="nav-item"><button class="nav-link active text-dark" id="usa-tab" data-bs-toggle="tab" data-bs-target="#usa-panel" onclick="switchLeague('USA')">旅美台將 (<span id="countUSA">0</span>)</button></li>
+                        <li class="nav-item"><button class="nav-link text-dark" id="japan-tab" data-bs-toggle="tab" data-bs-target="#japan-panel" onclick="switchLeague('JPN')">旅日台將 (<span id="countJPN">0</span>)</button></li>
+                        <li class="nav-item"><button class="nav-link text-dark" id="korea-tab" data-bs-toggle="tab" data-bs-target="#korea-panel" onclick="switchLeague('KOR')">旅韓台將 (<span id="countKOR">0</span>)</button></li>
+                    </ul>
+                    
+                    <div class="tab-content">
+                        <div id="playerButtonsContainer" class="d-flex flex-wrap gap-2 py-2">
+                            </div>
+                        <div id="noPlayerAlert" class="alert alert-warning text-center d-none my-2">目前分類下無符合條件之選手</div>
+                    </div>
+                </div>
+
+                <div class="card shadow border-0 p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h2 class="fw-bold text-primary mb-0" id="playerName">請選擇球員按鈕</h2>
+                        <span class="badge bg-secondary fs-6" id="playerPos">-</span>
+                    </div>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+                        <p class="text-dark fw-bold mb-0" id="playerTeam">📍 效力體系：-</p>
+                        <a id="youtubeSearchLink" href="#" target="_blank" class="btn btn-danger btn-sm fw-bold shadow-sm d-none">📺 看最新出賽影片</a>
+                    </div>
+                    <p class="text-muted small mb-0" id="playerBatThrow">-</p>
+                    <hr class="mt-2">
+                    <div id="playerStats">
+                        <p class="text-center text-muted">點選上方名單，系統將會即時調取該選手 2026 賽季之跨國實時統計數據。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const fullDataset = [
+            // === 旅美現役 ===
+            { name: "鄧愷威", league: "USA", pos: "pitcher", cls: "btn-outline-danger" },
+            { name: "李灝宇", league: "USA", pos: "fielder", cls: "btn-outline-danger" },
+            { name: "鄭宗哲", league: "USA", pos: "fielder", cls: "btn-outline-dark" },
+            { name: "陳柏毓", league: "USA", pos: "pitcher", cls: "btn-outline-dark" },
+            { name: "林昱珉", league: "USA", pos: "pitcher", cls: "btn-outline-dark" },
+            { name: "莊陳仲敖", league: "USA", pos: "pitcher", cls: "btn-outline-dark" },
+            { name: "劉致榮", league: "USA", pos: "pitcher", cls: "btn-outline-secondary" },
+            { name: "潘文輝", league: "USA", pos: "pitcher", cls: "btn-outline-secondary" },
+            { name: "林振瑋", league: "USA", pos: "pitcher", cls: "btn-outline-secondary" },
+            { name: "林維恩", league: "USA", pos: "pitcher", cls: "btn-outline-secondary" },
+            { name: "張弘稜", league: "USA", pos: "pitcher", cls: "btn-outline-info" },
+            { name: "沙子宸", league: "USA", pos: "pitcher", cls: "btn-outline-info" },
+            { name: "林盛恩", league: "USA", pos: "pitcher", cls: "btn-outline-primary" },
+            { name: "沈家羲", league: "USA", pos: "pitcher", cls: "btn-outline-primary" },
+            { name: "柯敬賢", league: "USA", pos: "fielder", cls: "btn-outline-primary" },
+            { name: "黃仲翔", league: "USA", pos: "pitcher", cls: "btn-outline-primary" },
+            { name: "李晨薰", league: "USA", pos: "pitcher", cls: "btn-outline-warning text-dark" },
+            { name: "陽念希", league: "USA", pos: "pitcher", cls: "btn-outline-warning text-dark" },
+            { name: "林鉑濬", league: "USA", pos: "pitcher", cls: "btn-outline-warning text-dark" },
+            { name: "林張子俊", league: "USA", pos: "pitcher", cls: "btn-outline-warning text-dark" },
+            { name: "廖宥霖", league: "USA", pos: "pitcher", cls: "btn-outline-warning text-dark" },
+            { name: "蘇嵐鴻", league: "USA", pos: "pitcher", cls: "btn-outline-warning text-dark" },
+            
+            // === 旅日現役 ===
+            { name: "陽岱鋼", league: "JPN", pos: "fielder", cls: "btn-outline-primary" },
+            { name: "宋家豪", league: "JPN", pos: "pitcher", cls: "btn-outline-primary" },
+            { name: "徐翔聖", league: "JPN", pos: "pitcher", cls: "btn-outline-primary" },
+            { name: "孫易磊", league: "JPN", pos: "pitcher", cls: "btn-outline-success" },
+            { name: "黃錦豪", league: "JPN", pos: "pitcher", cls: "btn-outline-success" },
+            { name: "蕭齊", league: "JPN", pos: "pitcher", cls: "btn-outline-secondary" },
+            { name: "古林睿煬", league: "JPN", pos: "pitcher", cls: "btn-outline-secondary" },
+            { name: "林冠臣", league: "JPN", pos: "fielder", cls: "btn-outline-info" },
+            { name: "陽柏翔", league: "JPN", pos: "fielder", cls: "btn-outline-info" },
+            { name: "陳睦衡", league: "JPN", pos: "pitcher", cls: "btn-outline-dark" },
+            { name: "張峻瑋", league: "JPN", pos: "pitcher", cls: "btn-outline-dark" },
+            { name: "林安可", league: "JPN", pos: "fielder", cls: "btn-outline-warning text-dark" },
+            { name: "徐若熙", league: "JPN", pos: "pitcher", cls: "btn-outline-warning text-dark" },
+            { name: "林家正", league: "JPN", pos: "fielder", cls: "btn-outline-warning text-dark" },
+            
+            // === 旅韓現役 ===
+            { name: "王彥程", league: "KOR", pos: "pitcher", cls: "btn-outline-dark" }
+        ];
+        let currentLeague = 'USA';
+
+        window.onload = function() { 
+            updateTabCounts(); 
+            filterPlayers(); 
+        };
+
+        function switchLeague(leagueCode) { 
+            currentLeague = leagueCode; 
+            filterPlayers(); 
+        }
+
+        function updateTabCounts() {
+            document.getElementById('countUSA').innerText = fullDataset.filter(p => p.league === 'USA').length;
+            document.getElementById('countJPN').innerText = fullDataset.filter(p => p.league === 'JPN').length;
+            document.getElementById('countKOR').innerText = fullDataset.filter(p => p.league === 'KOR').length;
+        }
+
+        function filterPlayers() {
+            const search = document.getElementById('searchName').value.trim();
+            const position = document.getElementById('filterPosition').value;
+            const container = document.getElementById('playerButtonsContainer');
+            const alertBox = document.getElementById('noPlayerAlert');
+            
+            container.innerHTML = '';
+            
+            const filtered = fullDataset.filter(p => {
+                return p.league === currentLeague && 
+                       p.name.includes(search) && 
+                       (position === 'all' || p.pos === position);
+            });
+
+            if(filtered.length === 0) { 
+                alertBox.classList.remove('d-none'); 
+            } else {
+                alertBox.classList.add('d-none');
+                filtered.forEach(p => {
+                    const btn = document.createElement('button');
+                    btn.className = `btn ${p.cls} player-card-btn btn-sm`;
+                    btn.innerText = p.name;
+                    btn.onclick = () => fetchPlayerData(p.name);
+                    container.appendChild(btn);
+                });
+            }
+        }
+
+        function resetFilters() {
+            document.getElementById('searchName').value = '';
+            document.getElementById('filterPosition').value = 'all';
+            filterPlayers();
+        }
+
+       function fetchPlayerData(name) {
+            document.getElementById('playerName').innerText = "數據擷取中...";
+            
+            // 搜尋影片連結
+            const youtubeSearchLink = document.getElementById('youtubeSearchLink');
+            youtubeSearchLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(name)}`;
+            youtubeSearchLink.classList.remove('d-none');
+
+            fetch('/api/player/' + name)
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success) {
+                        document.getElementById('playerName').innerText = name;
+                        document.getElementById('playerTeam').innerText = "📍 " + res.data.team;
+                        document.getElementById('playerPos').innerText = res.data.position;
+                        document.getElementById('playerBatThrow').innerText = "✍️ " + res.data.bat_throw;
+                        
+                        const statsDiv = document.getElementById('playerStats');
+                        
+// 1. 清空舊內容
+statsDiv.innerHTML = '';
+// 判斷該球員是否屬於「無數據顯示」的特殊名單
+const specialNames = ["林鉑濬", "林張子俊", "蘇嵐鴻", "林家正", "黃錦豪", "徐翔聖", "陽岱鋼"];
+// 修正判斷條件：使用 res.data.name (確保後端有傳入 name)
+const isSpecialPlayer = specialNames.includes(res.data.name);
+
+// 偵測是否為「日職」
+const isNPB = (res.data.league === 'JPN');
+const isPitcher = (res.data.type === 'pitcher'); // 後端必須傳回 'pitcher'
+const isLinAnKe = (res.data.name === "林安可");
+
+if (isNPB&& !isLinAnKe) {
+    if (isPitcher) {
+        // 修正：明確抓取後端回傳的 key (投手為 ERA, K/9, BB/9)
+        statsDiv.innerHTML = `
+            <div class="row text-center mt-3">
+                <div class="col"><small class="text-muted d-block">ERA</small><strong>${res.data.ERA || '--'}</strong></div>
+                <div class="col"><small class="text-muted d-block">K/9</small><strong>${res.data["K/9"] || '--'}</strong></div>
+                <div class="col"><small class="text-muted d-block">BB/9</small><strong>${res.data["BB/9"] || '--'}</strong></div>
+            </div>`;
+    } else {
+        // 修正：明確抓取後端回傳的 key (野手為 OPS, ISO, BB/K)
+        statsDiv.innerHTML = `
+            <div class="row text-center mt-3">
+                <div class="col"><small class="text-muted d-block">OPS</small><strong>${res.data.OPS || '--'}</strong></div>
+                <div class="col"><small class="text-muted d-block">ISO</small><strong>${res.data.ISO || '--'}</strong></div>
+                <div class="col"><small class="text-muted d-block">BB/K</small><strong>${res.data["BB/K"] || '--'}</strong></div>
+            </div>`;
+    }
+} else {
+    if (isPitcher) {
+    // 投手介面 (若為特殊名單則顯示 "--"，否則顯示真實數據)
+    statsDiv.innerHTML = `
+        <div class="row text-center">
+            <div class="col-6 col-md-3 mb-2"><div class="p-2 bg-light rounded shadow-sm border-start border-danger border-3"><small class="text-muted d-block">防禦率 ERA</small><h3 class="fw-bold text-danger mt-1 mb-0">${isSpecialPlayer ? '--' : res.data.era}</h3></div></div>
+            <div class="col-6 col-md-3 mb-2"><div class="p-2 bg-light rounded shadow-sm"><small class="text-muted d-block">奪三振 SO</small><h3 class="fw-bold mt-1 mb-0">${isSpecialPlayer ? '--' : res.data.so}</h3></div></div>
+            <div class="col-6 col-md-3 mb-2"><div class="p-2 bg-light rounded shadow-sm"><small class="text-muted d-block">局數 IP</small><h3 class="fw-bold mt-1 mb-0">${isSpecialPlayer ? '--' : res.data.ip}</h3></div></div>
+            <div class="col-6 col-md-3 mb-2"><div class="p-2 bg-light rounded shadow-sm"><small class="text-muted d-block">勝敗/紀錄</small><h4 class="fw-bold mt-1 mb-0 fs-6 text-truncate pt-1">${isSpecialPlayer ? '--' : res.data.w_l}</h4></div></div>
+        </div>`;
+    } else {
+    // 野手介面 (若為特殊名單則顯示 "--"，否則顯示真實數據)
+    statsDiv.innerHTML = `
+        <div class="row text-center">
+            <div class="col-6 col-md-3 mb-2"><div class="p-2 bg-light rounded shadow-sm border-start border-success border-3"><small class="text-muted d-block">打擊率 AVG</small><h3 class="fw-bold text-success mt-1 mb-0">${isSpecialPlayer ? '--' : res.data.avg}</h3></div></div>
+            <div class="col-6 col-md-3 mb-2"><div class="p-2 bg-light rounded shadow-sm"><small class="text-muted d-block">全壘打 HR</small><h3 class="fw-bold mt-1 mb-0">${isSpecialPlayer ? '--' : res.data.hr}</h3></div></div>
+            <div class="col-6 col-md-3 mb-2"><div class="p-2 bg-light rounded shadow-sm"><small class="text-muted d-block">打點 RBI</small><h3 class="fw-bold mt-1 mb-0">${isSpecialPlayer ? '--' : res.data.rbi}</h3></div></div>
+            <div class="col-6 col-md-3 mb-2"><div class="p-2 bg-light rounded shadow-sm"><small class="text-muted d-block">累積安打</small><h4 class="fw-bold mt-1 mb-0 fs-6 text-truncate pt-1">${isSpecialPlayer ? '--' : res.data.h_ab}</h4></div></div>
+        </div>`;
+        }
+}
+                        // 3. 統一處理官方連結 (確保在任何情況下都能正確新增)
+                        if (res.data.official_link) {
+                            const linkDiv = document.createElement('div');
+                            linkDiv.className = "mt-3 text-center";
+                            linkDiv.innerHTML = `<a href="${res.data.official_link}" target="_blank" class="btn btn-outline-primary btn-sm">🔗 查看更多資訊</a>`;
+                            statsDiv.appendChild(linkDiv);
+                        }
+                    } else {
+                        document.getElementById('playerName').innerText = "讀取失敗";
+                        document.getElementById('playerStats').innerHTML = `<p class="text-center text-danger">${res.message || '無法取得數據'}</p>`;
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('playerName').innerText = "系統錯誤";
+                    document.getElementById('playerStats').innerHTML = `<p class="text-center text-danger">連線至 API 失敗</p>`;
+                });
+        }         
+    </script>
+</body>
+</html>
